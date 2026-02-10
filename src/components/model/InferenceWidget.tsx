@@ -544,42 +544,63 @@ export default function InferenceWidget({ modelId, modelMetadata }: InferenceWid
     // Inferencia LOCAL en el navegador
     const runLocalInference = async (imageUrl: string) => {
         if (!engineRef.current || !engineRef.current.isLoaded()) {
-            throw new Error('Motor de inferencia no está listo');
+            throw new Error('Motor de inferencia no está listo. Espera a que el modelo termine de cargar.');
         }
 
-        const { base64ToImageData } = await import('@/lib/inference/preprocessing');
+        console.log('🚀 Iniciando inferencia local...');
+        console.log('📷 URL de imagen:', imageUrl.substring(0, 50) + '...');
 
-        // Convertir imagen a ImageData
-        const imageData = await base64ToImageData(imageUrl);
+        try {
+            const { base64ToImageData } = await import('@/lib/inference/preprocessing');
 
-        // Obtener configuración del modelo
-        const config = getModelConfig();
+            // Convertir imagen a ImageData
+            console.log('🔄 Convirtiendo imagen a ImageData...');
+            const imageData = await base64ToImageData(imageUrl);
+            console.log(`✅ ImageData creado: ${imageData.width}x${imageData.height}`);
 
-        // Determinar tipo de modelo
-        const modelType = modelMetadata?.technical === 'Classification' ? 'classification' : 'detection';
+            // Obtener configuración del modelo
+            const config = getModelConfig();
+            console.log('⚙️ Config del modelo:', {
+                inputShape: config.inputShape,
+                labelsCount: config.labels.length,
+                threshold: config.postprocessing.confidenceThreshold
+            });
 
-        // Ejecutar inferencia
-        const result = await engineRef.current.runInference(imageData, {
-            confidenceThreshold: config.postprocessing.confidenceThreshold,
-            iouThreshold: config.postprocessing.iouThreshold,
-            maxDetections: config.postprocessing.maxDetections,
-            inputShape: config.inputShape,
-            labels: config.labels,
-            preprocessing: config.preprocessing,
-        }, modelType);
+            // Determinar tipo de modelo
+            const modelType = modelMetadata?.technical === 'Classification' ? 'classification' : 'detection';
+            console.log(`🎯 Tipo de modelo: ${modelType}`);
 
-        return {
-            predictions: result.predictions.map((p: any) => ({
-                class: p.class,
-                confidence: p.confidence,
-                x: p.bbox ? p.bbox.x + p.bbox.width / 2 : 0,
-                y: p.bbox ? p.bbox.y + p.bbox.height / 2 : 0,
-                width: p.bbox?.width || 0,
-                height: p.bbox?.height || 0,
-            })),
-            time: result.inferenceTimeMs,
-            image: result.inputSize,
-        };
+            // Ejecutar inferencia
+            console.log('⏳ Ejecutando inferencia...');
+            const result = await engineRef.current.runInference(imageData, {
+                confidenceThreshold: config.postprocessing.confidenceThreshold,
+                iouThreshold: config.postprocessing.iouThreshold,
+                maxDetections: config.postprocessing.maxDetections,
+                inputShape: config.inputShape,
+                labels: config.labels,
+                preprocessing: config.preprocessing,
+            }, modelType);
+
+            console.log(`✅ Inferencia completada en ${result.inferenceTimeMs?.toFixed(0)}ms`);
+            console.log(`📊 Predicciones: ${result.predictions.length}`);
+
+            return {
+                predictions: result.predictions.map((p: any) => ({
+                    class: p.class,
+                    confidence: p.confidence,
+                    x: p.bbox ? p.bbox.x + p.bbox.width / 2 : 0,
+                    y: p.bbox ? p.bbox.y + p.bbox.height / 2 : 0,
+                    width: p.bbox?.width || 0,
+                    height: p.bbox?.height || 0,
+                    bbox: p.bbox,
+                })),
+                time: result.inferenceTimeMs,
+                image: result.inputSize,
+            };
+        } catch (err) {
+            console.error('❌ Error en inferencia local:', err);
+            throw err;
+        }
     };
 
     // Inferencia via API (legacy/premium)
