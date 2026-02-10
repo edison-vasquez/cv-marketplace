@@ -101,8 +101,8 @@ export default function InferenceWidget({ modelId, modelMetadata }: InferenceWid
     const isClassificationModel = modelMetadata?.technical === 'Classification';
     const isSegmentationModel = modelMetadata?.technical === 'Segmentation';
 
-    // Solo modelos de detección soportan webcam en tiempo real
-    const supportsWebcam = isDetectionModel;
+    // Clasificación y Detección soportan webcam
+    const supportsWebcam = isDetectionModel || isClassificationModel;
 
     // Debug log
     useEffect(() => {
@@ -112,20 +112,8 @@ export default function InferenceWidget({ modelId, modelMetadata }: InferenceWid
             isClassificationModel,
             supportsWebcam
         });
-    }, [modelMetadata?.technical]);
+    }, [modelMetadata?.technical, isDetectionModel, isClassificationModel, supportsWebcam]);
 
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            stopRealtimeLoop();
-            if (streamRef.current) {
-                streamRef.current.getTracks().forEach(track => track.stop());
-            }
-            if (engineRef.current?.dispose) {
-                engineRef.current.dispose();
-            }
-        };
-    }, []);
 
     // Real-time inference loop
     const startRealtimeLoop = useCallback(() => {
@@ -157,6 +145,8 @@ export default function InferenceWidget({ modelId, modelMetadata }: InferenceWid
 
                 // Ejecutar inferencia
                 const config = getModelConfig();
+                const modelType = isClassificationModel ? 'classification' : 'detection';
+
                 const result = await engineRef.current.runInference(imageData, {
                     confidenceThreshold: config.postprocessing.confidenceThreshold,
                     iouThreshold: config.postprocessing.iouThreshold,
@@ -164,10 +154,16 @@ export default function InferenceWidget({ modelId, modelMetadata }: InferenceWid
                     inputShape: config.inputShape,
                     labels: config.labels,
                     preprocessing: config.preprocessing,
-                }, 'detection');
+                }, modelType);
 
-                // Dibujar bounding boxes en overlay
-                drawDetections(result.predictions, video.videoWidth, video.videoHeight);
+                // Dibujar bounding boxes en overlay (solo si es detección)
+                if (isDetectionModel) {
+                    drawDetections(result.predictions, video.videoWidth, video.videoHeight);
+                } else {
+                    // Limpiar overlay para clasificación
+                    const oCtx = overlayCanvasRef.current.getContext('2d');
+                    oCtx?.clearRect(0, 0, overlayCanvasRef.current.width, overlayCanvasRef.current.height);
+                }
 
                 // Actualizar FPS
                 frameCount++;
@@ -216,6 +212,19 @@ export default function InferenceWidget({ modelId, modelMetadata }: InferenceWid
             }
         }
     }, []);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            stopRealtimeLoop();
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+            }
+            if (engineRef.current?.dispose) {
+                engineRef.current.dispose();
+            }
+        };
+    }, [stopRealtimeLoop]);
 
     // Dibujar detecciones en el canvas overlay
     const drawDetections = (predictions: any[], videoWidth: number, videoHeight: number) => {
@@ -819,8 +828,8 @@ export default function InferenceWidget({ modelId, modelMetadata }: InferenceWid
                     <ImageIcon className="w-4 h-4 text-[#1a73e8]" />
                     <span className="text-xs text-[#5f6368]">
                         {isClassificationModel ? 'Modelo de Clasificación - Sube una imagen para analizar' :
-                         isSegmentationModel ? 'Modelo de Segmentación - Sube una imagen para segmentar' :
-                         'Sube una imagen para procesar'}
+                            isSegmentationModel ? 'Modelo de Segmentación - Sube una imagen para segmentar' :
+                                'Sube una imagen para procesar'}
                     </span>
                 </div>
             )}
@@ -991,34 +1000,6 @@ export default function InferenceWidget({ modelId, modelMetadata }: InferenceWid
                                         )}
                                     </div>
                                 )}
-                                {/* Contador de objetos detectados */}
-                                {isRealtime && result && result.predictions.length > 0 && (
-                                    <div className="absolute top-2 right-2 z-10">
-                                        <div className="bg-[#22c55e] text-white text-xs font-bold px-3 py-1 rounded shadow-lg">
-                                            {result.predictions.length} objeto{result.predictions.length !== 1 ? 's' : ''}
-                                        </div>
-                                    </div>
-                                )}
-                                {/* Panel de detecciones en vivo */}
-                                {isRealtime && result && result.predictions.length > 0 && (
-                                    <div className="absolute bottom-2 left-2 right-2 bg-[#202124]/90 backdrop-blur-sm rounded-lg p-3 z-10">
-                                        <div className="flex flex-wrap gap-2">
-                                            {result.predictions.slice(0, 8).map((p, i) => {
-                                                const color = p.confidence >= 0.7 ? 'bg-green-500' : p.confidence >= 0.5 ? 'bg-yellow-500' : 'bg-red-500';
-                                                return (
-                                                    <span key={i} className={`${color} text-white text-xs font-medium px-2 py-1 rounded`}>
-                                                        {p.class} {(p.confidence * 100).toFixed(0)}%
-                                                    </span>
-                                                );
-                                            })}
-                                            {result.predictions.length > 8 && (
-                                                <span className="bg-[#5f6368] text-white text-xs font-medium px-2 py-1 rounded">
-                                                    +{result.predictions.length - 8} más
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
                             </>
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center gap-4 py-16">
@@ -1115,44 +1096,37 @@ export default function InferenceWidget({ modelId, modelMetadata }: InferenceWid
                 </div>
             )}
 
-            {/* Results display */}
-            {result && result.predictions.length > 0 && (
-                <div className="mt-4 p-4 bg-[#e8f0fe] border border-[#1a73e8]/20 rounded-xl">
-                    <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-[#1a73e8]">
-                            Resultados
-                            {inferenceMode === 'browser' && (
-                                <span className="ml-2 px-1.5 py-0.5 bg-[#1a73e8]/10 rounded text-[10px] font-normal">
-                                    LOCAL
-                                </span>
-                            )}
-                        </h4>
+            {/* Resumen de inferencia */}
+            {result && result.predictions.length > 0 && !isRealtime && (
+                <div className="mt-4 space-y-3">
+                    {isClassificationModel && result.predictions[0] && (
+                        <div className="p-3 bg-[#e8f0fe] rounded-lg border border-[#1a73e8]/20">
+                            <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-bold text-[#1a73e8] uppercase tracking-wider">Predicción Principal</span>
+                                <span className="text-xs font-black text-[#1a73e8]">{(result.predictions[0].confidence * 100).toFixed(1)}%</span>
+                            </div>
+                            <p className="text-lg font-bold text-[#202124] capitalize">{result.predictions[0].class}</p>
+                        </div>
+                    )}
+
+                    <div className="flex items-center justify-between text-xs text-[#5f6368] px-1">
+                        <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                            {result.predictions.length} {isDetectionModel ? 'detección' : 'resultado'}{result.predictions.length !== 1 ? 'es' : ''}
+                        </span>
                         {(result.time || result.inferenceTimeMs) && (
-                            <span className="text-xs text-[#5f6368]">
+                            <span>
                                 {(result.time || result.inferenceTimeMs || 0).toFixed(0)}ms
+                                {inferenceMode === 'browser' && ' • Local'}
                             </span>
                         )}
-                    </div>
-                    <div className="space-y-2">
-                        {result.predictions.map((p, i) => (
-                            <div key={i} className="flex items-center justify-between bg-white rounded-lg px-3 py-2">
-                                <span className="text-sm font-medium text-[#202124]">{p.class}</span>
-                                <span className={cn(
-                                    "text-sm font-bold",
-                                    p.confidence >= 0.8 ? "text-green-600" :
-                                    p.confidence >= 0.5 ? "text-yellow-600" : "text-red-600"
-                                )}>
-                                    {(p.confidence * 100).toFixed(1)}%
-                                </span>
-                            </div>
-                        ))}
                     </div>
                 </div>
             )}
 
-            {result && result.predictions.length === 0 && (
-                <div className="mt-4 p-4 bg-[#fef7e0] border border-[#f9ab00]/20 rounded-xl">
-                    <p className="text-sm text-[#5f6368]">No se detectaron objetos en esta imagen. Intenta con una imagen diferente.</p>
+            {result && result.predictions.length === 0 && !isRealtime && (
+                <div className="mt-4 p-3 bg-[#fef7e0] border border-[#f9ab00]/20 rounded-xl">
+                    <p className="text-sm text-[#5f6368]">No se detectaron objetos. Intenta con otra imagen.</p>
                 </div>
             )}
         </div>
