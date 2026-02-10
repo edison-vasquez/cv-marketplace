@@ -48,6 +48,9 @@ async function getModel(slug: string) {
         format: (model.model_format || model.modelFormat || 'onnx') as 'onnx' | 'tfjs' | 'both' | null,
         onnxModelUrl: model.onnx_model_url || model.onnxModelUrl || null,
         tfjsModelUrl: model.tfjs_model_url || model.tfjsModelUrl || null,
+        roboflowId: model.roboflow_id || model.roboflowId || null,
+        roboflowVersion: model.roboflow_version || model.roboflowVersion || null,
+        roboflowModelType: model.roboflow_model_type || model.roboflowModelType || null,
         modelSizeBytes: model.model_size_bytes || model.modelSizeBytes || null,
         inputShape: toStringOrNull(model.input_shape || model.inputShape),
         labels: toStringOrNull(model.labels),
@@ -301,8 +304,8 @@ const topClass = Math.max(...scores);`}
             <Link
               href={model.modelMetadata.isPremium ? "/pricing" : "/dashboard/api-keys"}
               className={`block w-full py-2 text-center text-sm font-medium rounded-lg border transition-colors ${model.modelMetadata.isPremium
-                  ? "bg-[#1a73e8] text-white border-[#1a73e8] hover:bg-[#185abc]"
-                  : "bg-[#f8f9fa] text-[#1a73e8] border-[#dadce0] hover:bg-[#e8f0fe]"
+                ? "bg-[#1a73e8] text-white border-[#1a73e8] hover:bg-[#185abc]"
+                : "bg-[#f8f9fa] text-[#1a73e8] border-[#dadce0] hover:bg-[#e8f0fe]"
                 }`}
             >
               {model.modelMetadata.isPremium ? "Actualizar a Pro" : "Generar API Key"}

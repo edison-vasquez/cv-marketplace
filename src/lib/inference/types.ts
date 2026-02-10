@@ -3,9 +3,12 @@
 export interface ModelMetadata {
   id: string;
   title: string;
-  format: 'onnx' | 'tfjs' | 'both';
+  format: 'onnx' | 'tfjs' | 'both' | 'api';
   onnxModelUrl?: string;
   tfjsModelUrl?: string;
+  roboflowId?: string;
+  roboflowVersion?: number;
+  roboflowModelType?: string;
   modelSizeBytes?: number;
   inputShape: InputShape;
   outputShape?: OutputShape;
