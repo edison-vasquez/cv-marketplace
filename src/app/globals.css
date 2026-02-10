@@ -1,26 +1,81 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Google-style colors: white background, blue accents */
+  --color-background: #ffffff;
+  --color-foreground: #202124;
+  --color-primary: #1a73e8;
+  --color-primary-hover: #1557b0;
+  --color-secondary: #4285f4;
+  --color-accent: #ea4335;
+  --color-muted: #f8f9fa;
+  --color-border: #dadce0;
+  --color-text-secondary: #5f6368;
+  --color-text-tertiary: #80868b;
+
+  --font-sans: 'Inter', system-ui, sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    @apply antialiased;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  .card {
+    background: #ffffff;
+    border: 1px solid var(--color-border);
+    @apply rounded-lg shadow-sm hover:shadow-md transition-shadow;
+  }
+
+  .btn-primary {
+    background-color: var(--color-primary);
+    color: white;
+    @apply px-4 py-2 rounded-md font-medium hover:bg-[var(--color-primary-hover)] transition-colors;
+  }
+
+  .btn-secondary {
+    background-color: transparent;
+    color: var(--color-primary);
+    border: 1px solid var(--color-border);
+    @apply px-4 py-2 rounded-md font-medium hover:bg-[var(--color-muted)] transition-colors;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  }
+
+  .search-input {
+    background-color: var(--color-muted);
+    border: 1px solid transparent;
+    @apply rounded-full px-6 py-3 outline-none transition-all;
+  }
+
+  .search-input:hover {
+    box-shadow: 0 1px 6px rgba(32, 33, 36, 0.28);
+  }
+
+  .search-input:focus {
+    background-color: #ffffff;
+    border-color: transparent;
+    box-shadow: 0 1px 6px rgba(32, 33, 36, 0.28);
+  }
+
+  .chip {
+    background-color: var(--color-muted);
+    color: var(--color-text-secondary);
+    @apply px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors cursor-pointer;
+  }
+
+  .chip-active {
+    background-color: #e8f0fe;
+    color: var(--color-primary);
+    @apply px-3 py-1.5 rounded-full text-sm font-medium;
+  }
 }

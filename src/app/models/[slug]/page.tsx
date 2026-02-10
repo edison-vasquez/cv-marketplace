@@ -1,4 +1,4 @@
-import { ArrowLeft, Clock } from 'lucide-react'
+import { ArrowLeft, Clock, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import InferenceWidget from '@/components/model/InferenceWidget'
@@ -111,6 +111,12 @@ export default async function ModelPage({ params }: PageProps) {
               <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${technicalColors[model.technical] || technicalColors.Detection}`}>
                 {model.technical}
               </span>
+              {model.modelMetadata.isPremium && (
+                <span className="flex items-center gap-1 px-3 py-1 bg-yellow-400 text-yellow-900 rounded-full text-[10px] font-black uppercase tracking-widest border border-yellow-500 shadow-sm">
+                  <Zap className="w-2.5 h-2.5 fill-current" />
+                  Premium
+                </span>
+              )}
               <span className="text-[#dadce0]">•</span>
               <span className="text-[#5f6368] text-sm font-medium">v{model.version}</span>
             </div>
@@ -249,7 +255,17 @@ export default async function ModelPage({ params }: PageProps) {
               <h2 className="text-xl font-bold text-[#202124]">Código de Integración</h2>
               <div className="relative group">
                 <pre className="bg-[#202124] text-[#e8eaed] p-6 rounded-xl overflow-x-auto text-xs leading-relaxed font-mono">
-                  {`import * as ort from 'onnxruntime-web';
+                  {model.modelMetadata.format === 'tfjs'
+                    ? `import * as tf from '@tensorflow/tfjs';
+import * as cocoSsd from '@tensorflow-models/coco-ssd';
+
+// Cargar el modelo
+const model = await cocoSsd.load();
+
+// Ejecutar inferencia
+const predictions = await model.detect(imageElement);
+console.log('Predicciones:', predictions);`
+                    : `import * as ort from 'onnxruntime-web';
 
 // Cargar el modelo
 const session = await ort.InferenceSession.create(
@@ -283,10 +299,13 @@ const topClass = Math.max(...scores);`}
               Usa nuestra API para integrar {model.title} en tu aplicación backend.
             </p>
             <Link
-              href="/dashboard/api-keys"
-              className="block w-full py-2 bg-[#f8f9fa] text-center text-sm font-medium text-[#1a73e8] rounded-lg border border-[#dadce0] hover:bg-[#e8f0fe] transition-colors"
+              href={model.modelMetadata.isPremium ? "/pricing" : "/dashboard/api-keys"}
+              className={`block w-full py-2 text-center text-sm font-medium rounded-lg border transition-colors ${model.modelMetadata.isPremium
+                  ? "bg-[#1a73e8] text-white border-[#1a73e8] hover:bg-[#185abc]"
+                  : "bg-[#f8f9fa] text-[#1a73e8] border-[#dadce0] hover:bg-[#e8f0fe]"
+                }`}
             >
-              Generar API Key
+              {model.modelMetadata.isPremium ? "Actualizar a Pro" : "Generar API Key"}
             </Link>
           </div>
         </div>

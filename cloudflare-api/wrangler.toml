@@ -1,0 +1,33 @@
+name = "visionhub-api"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Variables de entorno (configurar en dashboard o con wrangler secret)
+[vars]
+ENVIRONMENT = "production"
+
+# Cloudflare D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "visionhub-db"
+database_id = "2bdda276-2757-425d-80ff-6668e1b00399"
+
+# R2 Storage para modelos ONNX
+[[r2_buckets]]
+binding = "MODELS_BUCKET"
+bucket_name = "visionhub-models"
+
+# KV para caché de sesiones
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "823fc8ed4b1b423082f9cfa9f6b2d4bf"
+
+[env.preview]
+name = "visionhub-api-preview"
+
+[env.production]
+name = "visionhub-api"
+routes = [
+  { pattern = "api.visionhub.com/*", zone_name = "visionhub.com" }
+]

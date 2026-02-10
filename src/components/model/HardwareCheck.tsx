@@ -19,12 +19,12 @@ interface WebGPUAdapterInfo {
     architecture?: string;
 }
 
-interface WebGPUAdapter {
-    info: WebGPUAdapterInfo;
+interface WebGPU {
+    requestAdapter(): Promise<GPUAdapter | null>;
 }
 
-interface WebGPU {
-    requestAdapter(): Promise<WebGPUAdapter | null>;
+interface GPUAdapter {
+    info: WebGPUAdapterInfo;
 }
 
 async function detectWebGPU(): Promise<{ supported: boolean; adapterInfo?: WebGPUAdapterInfo }> {
@@ -34,7 +34,7 @@ async function detectWebGPU(): Promise<{ supported: boolean; adapterInfo?: WebGP
 
     try {
         const gpu = (navigator as Navigator & { gpu: WebGPU }).gpu;
-        const adapter = await gpu.requestAdapter();
+        const adapter = await gpu.requestAdapter() as any;
         if (!adapter) {
             return { supported: false };
         }

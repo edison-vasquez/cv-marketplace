@@ -342,62 +342,62 @@ export default function InferenceWidget({ modelId, modelMetadata }: InferenceWid
 
     // Cargar modelo en el navegador
     const loadModelInBrowser = async () => {
-        if (!modelMetadata?.onnxModelUrl) {
-            setError('Este modelo no tiene archivo ONNX disponible');
-            return;
-        }
+        if (!modelMetadata) return;
 
         try {
             setIsDownloading(true);
             setError(null);
 
-            // Importar dinámicamente para code splitting
-            const { ONNXInferenceEngine } = await import('@/lib/inference/onnx-engine');
-            const { modelCache } = await import('@/lib/inference/model-cache');
-            const { downloadWithProgress, formatBytes } = await import('@/lib/inference/model-downloader');
+            // Determinar formato
+            const format = modelMetadata.format || 'onnx';
 
-            const engine = new ONNXInferenceEngine();
-            engineRef.current = engine;
+            if (format === 'tfjs') {
+                const { TFJSInferenceEngine } = await import('@/lib/inference/tfjs-engine');
+                const engine = new TFJSInferenceEngine();
+                engineRef.current = engine;
 
-            // Detectar hardware
-            const hwInfo = await engine.detectBestBackend();
-            setBackendInfo(`${hwInfo.backend.toUpperCase()}${hwInfo.gpuName ? ` (${hwInfo.gpuName})` : ''}`);
-
-            // Verificar caché
-            const cached = await modelCache.get(modelId);
-            if (cached) {
-                console.log('✅ Modelo encontrado en caché');
-                setDownloadProgress(100);
-                await engine.initialize(cached.blobUrl);
+                await engine.initialize(modelMetadata.tfjsModelUrl || 'coco-ssd');
+                setBackendInfo('TFJS (WebGL/WebGPU)');
                 setModelLoaded(true);
                 setEngineReady(true);
-                setIsDownloading(false);
-                return;
-            }
+            } else {
+                // Lógica ONNX
+                const { ONNXInferenceEngine } = await import('@/lib/inference/onnx-engine');
+                const { modelCache } = await import('@/lib/inference/model-cache');
+                const { downloadWithProgress } = await import('@/lib/inference/model-downloader');
 
-            // Descargar modelo con progreso
-            console.log('📥 Descargando modelo...');
-            const modelBlob = await downloadWithProgress(
-                modelMetadata.onnxModelUrl,
-                (progress) => {
-                    setDownloadProgress(progress.percentage);
+                if (!modelMetadata.onnxModelUrl) {
+                    throw new Error('Este modelo no tiene archivo ONNX disponible');
                 }
-            );
 
-            // Guardar en caché
-            const blobUrl = URL.createObjectURL(modelBlob);
-            await modelCache.set(modelId, modelBlob, modelMetadata.version || '1.0.0');
+                const engine = new ONNXInferenceEngine();
+                engineRef.current = engine;
 
-            // Inicializar motor
-            await engine.initialize(blobUrl);
+                const hwInfo = await engine.detectBestBackend();
+                setBackendInfo(`${hwInfo.backend.toUpperCase()}${hwInfo.gpuName ? ` (${hwInfo.gpuName})` : ''}`);
 
-            setModelLoaded(true);
-            setEngineReady(true);
-            console.log('✅ Modelo cargado y listo');
+                const cached = await modelCache.get(modelId);
+                if (cached) {
+                    setDownloadProgress(100);
+                    await engine.initialize(cached.blobUrl);
+                } else {
+                    const modelBlob = await downloadWithProgress(
+                        modelMetadata.onnxModelUrl,
+                        (progress) => setDownloadProgress(progress.percentage)
+                    );
+                    const blobUrl = URL.createObjectURL(modelBlob);
+                    await modelCache.set(modelId, modelBlob, modelMetadata.version || '1.0.0');
+                    await engine.initialize(blobUrl);
+                }
+
+                setModelLoaded(true);
+                setEngineReady(true);
+            }
 
         } catch (err) {
             console.error('Error cargando modelo:', err);
             setError(`Error cargando modelo: ${err instanceof Error ? err.message : 'Error desconocido'}`);
+            setInferenceMode('api');
         } finally {
             setIsDownloading(false);
         }
