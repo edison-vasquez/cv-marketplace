@@ -39,8 +39,26 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Llamar a Roboflow API
-    const roboflowUrl = `https://detect.roboflow.com/${modelId}/1?api_key=${apiKey}`
+    // 1. Obtener detalles del modelo para saber qué Roboflow ID usar
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://visionhub-api.edison-985.workers.dev'
+    const modelRes = await fetch(`${API_URL}/api/models/${modelId}`)
+    const modelData = await modelRes.json()
+
+    if (!modelRes.ok || !modelData.roboflow_id) {
+      console.warn(`Model ${modelId} not found or no Roboflow ID. Using mock data.`)
+      return NextResponse.json({
+        predictions: generateMockPredictions(modelId),
+        time: Math.random() * 0.1 + 0.05,
+        image: { width: 640, height: 480 },
+        _demo: true,
+      })
+    }
+
+    const roboflowId = modelData.roboflow_id
+    const roboflowVersion = modelData.roboflow_version || 1
+
+    // 2. Llamar a Roboflow API
+    const roboflowUrl = `https://detect.roboflow.com/${roboflowId}/${roboflowVersion}?api_key=${apiKey}`
 
     const response = await fetch(roboflowUrl, {
       method: 'POST',

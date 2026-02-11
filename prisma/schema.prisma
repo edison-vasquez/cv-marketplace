@@ -1,0 +1,166 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== AUTH MODELS ====================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ==================== USER MODEL ====================
+
+model User {
+  id              String    @id @default(cuid())
+  name            String?
+  email           String?   @unique
+  emailVerified   DateTime?
+  image           String?
+  roboflowApiKey  String?
+  isAdmin         Boolean   @default(false)
+  premiumTier     String?   @default("free")
+  premiumUntil    DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  accounts    Account[]
+  sessions    Session[]
+  workflows   Workflow[]
+  deployments Deployment[]
+  apiKeys     ApiKey[]
+}
+
+// ==================== CV MODELS ====================
+
+model Model {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  creator     String
+  description String?
+  category    String
+  technical   String
+  mAP         Float
+  precision   Float?
+  inferenceMs Int?
+  image       String
+  tags        String
+  roboflowId  String?
+  version     String   @default("1.0.0")
+  isPublic    Boolean  @default(true)
+
+  // Campos para inferencia local en navegador
+  modelFormat     String?  // "onnx" | "tfjs" | "both"
+  onnxModelUrl    String?  // URL al archivo .onnx
+  tfjsModelUrl    String?  // URL al model.json de TensorFlow.js
+  modelSizeBytes  Int?     // Tamaño para mostrar progreso de descarga
+  inputShape      String?  // JSON: {"width": 640, "height": 640, "channels": 3}
+  outputShape     String?  // JSON: formato de salida del modelo
+  labels          String?  // JSON: ["person", "car", "helmet", ...]
+  preprocessing   String?  // JSON: {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
+  postprocessing  String?  // JSON: config para NMS, thresholds
+
+  // Campos para acceso premium API
+  isPremium       Boolean  @default(false)
+  apiAccessTier   String?  @default("free") // "free" | "basic" | "pro" | "enterprise"
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  deployments Deployment[]
+}
+
+// ==================== WORKFLOW MODELS ====================
+
+model Workflow {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  nodes       String
+  isPublic    Boolean  @default(false)
+  shareId     String?  @unique
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ==================== DEPLOYMENT MODELS ====================
+
+model Deployment {
+  id           String    @id @default(cuid())
+  name         String
+  status       String    @default("pending")
+  type         String    @default("docker")
+  metrics      String?
+  config       String?
+  modelId      String
+  userId       String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastActiveAt DateTime?
+
+  model Model @relation(fields: [modelId], references: [id])
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ==================== API KEYS (PREMIUM) ====================
+
+model ApiKey {
+  id            String    @id @default(cuid())
+  key           String    @unique  // Hash SHA-256 de la key
+  name          String              // Nombre descriptivo
+  tier          String    @default("free") // "free" | "basic" | "pro" | "enterprise"
+  requestCount  Int       @default(0)
+  requestLimit  Int       @default(1000)  // Limite mensual
+  lastUsedAt    DateTime?
+  expiresAt     DateTime?
+  isActive      Boolean   @default(true)
+  userId        String
+  createdAt     DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([key])
+}

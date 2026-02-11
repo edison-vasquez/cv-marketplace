@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { User, LogOut, ChevronDown, LayoutDashboard, Key, Settings, Shield } from 'lucide-react';
+import { User, LogOut, ChevronDown, LayoutDashboard, Key, Settings, Shield, MessageSquare } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 export default function Navbar() {
@@ -36,6 +36,9 @@ export default function Navbar() {
                         <Link href="/" className="px-4 py-2 text-sm font-medium text-[#1a73e8] bg-[#e8f0fe] rounded-full">
                             Marketplace
                         </Link>
+                        <Link href="/services" className="px-4 py-2 text-sm font-medium text-[#5f6368] hover:bg-[#f8f9fa] rounded-full transition-colors">
+                            Soluciones
+                        </Link>
                         <Link href="/docs" className="px-4 py-2 text-sm font-medium text-[#5f6368] hover:bg-[#f8f9fa] rounded-full transition-colors">
                             Documentación
                         </Link>
@@ -46,6 +49,13 @@ export default function Navbar() {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    <a
+                        href="mailto:edison@jhedai.com?subject=Solicitud%20Demo%20VisionHub"
+                        className="hidden md:flex items-center gap-1.5 text-xs px-3 py-1.5 bg-[#1a73e8] text-white rounded-full hover:bg-[#1557b0] transition-colors font-medium"
+                    >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        Solicitar Demo
+                    </a>
 
                     {status === 'loading' ? (
                         <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />

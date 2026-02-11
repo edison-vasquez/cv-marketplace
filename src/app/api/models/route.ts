@@ -34,6 +34,13 @@ export async function GET(request: NextRequest) {
       modelSizeBytes: model.model_size_bytes,
       isPremium: model.is_premium === 1,
       inferenceMs: model.inference_ms,
+      // Roboflow fields
+      roboflowId: model.roboflow_id,
+      roboflowVersion: model.roboflow_version,
+      roboflowModelType: model.roboflow_model_type,
+      // Technical fields
+      inputShape: model.input_shape,
+      labels: model.labels,
     })) || []
 
     return NextResponse.json({

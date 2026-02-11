@@ -1,0 +1,4 @@
+# Ignore large files
+*.onnx
+scripts/models/
+cloudflare-api/

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowUpRight, BarChart3, Cpu, Cloud, Zap } from 'lucide-react';
+import { ArrowUpRight, BarChart3, Cpu, Cloud, Zap, Video } from 'lucide-react';
 
 interface ModelCardProps {
     id: string;
@@ -34,7 +34,7 @@ export default function ModelCard({
     return (
         <Link
             href={`/models/${id}`}
-            className="bg-white border border-[#dadce0] rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-200 block text-current no-underline group"
+            className="bg-white border border-[#dadce0] rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-200 block text-current no-underline group transform hover:scale-[1.02]"
         >
             <div className="relative h-40 w-full overflow-hidden bg-[#f8f9fa]">
                 <img
@@ -53,7 +53,7 @@ export default function ModelCard({
                     )}
                 </div>
                 {/* Indicador de inferencia local */}
-                <div className="absolute top-3 right-3">
+                <div className="absolute top-3 right-3 flex items-center gap-1.5">
                     {supportsLocalInference ? (
                         <span className="px-2 py-1 text-xs font-medium bg-green-500 text-white rounded-full flex items-center gap-1" title="Ejecutar en navegador">
                             <Cpu className="w-3 h-3" />
@@ -63,6 +63,12 @@ export default function ModelCard({
                         <span className="px-2 py-1 text-xs font-medium bg-[#5f6368] text-white rounded-full flex items-center gap-1" title="Requiere API">
                             <Cloud className="w-3 h-3" />
                             API
+                        </span>
+                    )}
+                    {technical === 'Detection' && (
+                        <span className="bg-green-50 text-green-700 text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                            <Video className="w-2.5 h-2.5" />
+                            Webcam
                         </span>
                     )}
                 </div>
@@ -109,10 +115,10 @@ export default function ModelCard({
 
                 <div className="mt-4 pt-3 border-t border-[#e8eaed]">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-[#1a73e8] text-sm font-medium group-hover:underline">
+                        <button className="px-3 py-1.5 bg-[#1a73e8] text-white rounded-lg text-xs font-medium hover:bg-[#1557b0] transition-colors flex items-center gap-1">
                             Probar Modelo
-                            <ArrowUpRight className="w-4 h-4" />
-                        </div>
+                            <ArrowUpRight className="w-3.5 h-3.5" />
+                        </button>
                         {modelSizeBytes && supportsLocalInference && (
                             <span className="text-xs text-[#5f6368]">
                                 {formatSize(modelSizeBytes)}

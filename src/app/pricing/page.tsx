@@ -3,47 +3,52 @@ import Link from 'next/link'
 
 const tiers = [
     {
-        name: 'Explorador',
-        price: 'Gratis',
-        description: 'Para entusiastas y pruebas iniciales de concepto.',
+        name: 'Starter',
+        price: 'Cotizar',
+        description: 'Ideal para validar un caso de uso específico con un modelo pre-entrenado o personalizado.',
         features: [
-            'Inferencia en navegador (modelos gratuitos)',
-            '100 llamadas API al día',
-            'Acceso al Hub de modelos públicos',
-            'Soporte por comunidad',
+            '1 modelo de detección o clasificación',
+            'Entrenamiento con tus datos (hasta 1,000 imágenes)',
+            'API REST con 10,000 llamadas/mes',
+            'Soporte técnico por email',
+            'Dashboard de monitoreo básico',
         ],
-        cta: 'Empezar Gratis',
-        href: '/',
+        cta: 'Solicitar Cotización',
+        href: 'mailto:edison@jhedai.com?subject=Cotización%20VisionHub%20-%20Plan%20Starter',
         featured: false,
     },
     {
         name: 'Profesional',
-        price: 'Custom',
-        description: 'Soluciones optimizadas para PYMES y flujos industriales.',
+        price: 'Cotizar',
+        description: 'Soluciones completas para PYMES con múltiples modelos y despliegue dedicado.',
         features: [
-            'Inferencia 100% local ilimitada',
-            'Inferencia en la nube (API) dedicada',
-            'Acceso a todos los modelos Premium',
-            'Soporte por email 24/7',
+            'Hasta 5 modelos personalizados',
+            'Entrenamiento ilimitado con tus datos',
+            'API dedicada con alta disponibilidad',
+            'Despliegue en cloud o edge (NVIDIA Jetson)',
+            'Soporte prioritario 24/7',
             'Dashboard de analítica avanzada',
+            'Reentrenamiento automático por drift',
         ],
         cta: 'Solicitar Demo',
-        href: 'mailto:ventas@visionhub.com?subject=Solicitud de Demo Profesional',
+        href: 'mailto:edison@jhedai.com?subject=Solicitud%20Demo%20VisionHub%20-%20Plan%20Profesional',
         featured: true,
     },
     {
         name: 'Enterprise',
-        price: 'Custom',
-        description: 'Infraestructura robusta para operaciones a gran escala.',
+        price: 'Cotizar',
+        description: 'Infraestructura robusta para operaciones industriales a gran escala.',
         features: [
-            'Modelos entrenados a medida (Custom AI)',
+            'Modelos ilimitados entrenados a medida',
             'SLA garantizado del 99.9%',
-            'Despliegue On-Premise / Edge',
+            'Despliegue On-Premise / Edge / Híbrido',
             'Gerente de cuenta dedicado',
-            'Integración directa con SAP/ERP',
+            'Integración con SAP, ERP, MES, WMS',
+            'Auditoría y compliance de datos',
+            'Capacitación para tu equipo técnico',
         ],
         cta: 'Contactar Ventas',
-        href: 'mailto:ventas@visionhub.com?subject=Consulta Corporativa Enterprise',
+        href: 'mailto:edison@jhedai.com?subject=Consulta%20VisionHub%20-%20Plan%20Enterprise',
         featured: false,
     },
 ]
@@ -64,7 +69,7 @@ export default function PricingPage() {
                     Escala tu visión industrial
                 </h1>
                 <p className="text-lg text-[#5f6368]">
-                    Planes flexibles diseñados para adaptarse a la complejidad de tus procesos, desde una sola línea hasta toda la planta.
+                    Cada proyecto es único. Cotiza un plan adaptado a la complejidad de tus procesos, desde un solo modelo hasta toda la planta.
                 </p>
             </div>
 
@@ -86,14 +91,13 @@ export default function PricingPage() {
                         <div className="space-y-6">
                             <div className="space-y-2">
                                 <div className="flex items-center gap-2">
-                                    {tier.name === 'Explorador' && <Rocket className="w-5 h-5 text-[#1a73e8]" />}
+                                    {tier.name === 'Starter' && <Rocket className="w-5 h-5 text-[#1a73e8]" />}
                                     {tier.name === 'Profesional' && <Zap className="w-5 h-5 text-[#1a73e8]" />}
                                     {tier.name === 'Enterprise' && <Building2 className="w-5 h-5 text-[#1a73e8]" />}
                                     <h3 className="text-xl font-bold text-[#202124]">{tier.name}</h3>
                                 </div>
                                 <div className="flex items-baseline gap-1">
                                     <span className="text-4xl font-black text-[#202124]">{tier.price}</span>
-                                    {tier.price === 'Gratis' && <span className="text-sm text-[#5f6368]">/siempre</span>}
                                 </div>
                                 <p className="text-sm text-[#5f6368] leading-relaxed">
                                     {tier.description}

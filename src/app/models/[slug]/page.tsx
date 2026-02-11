@@ -1,7 +1,8 @@
-import { ArrowLeft, Clock, Zap } from 'lucide-react'
+import { ArrowLeft, Clock, Zap, Cpu, Cloud } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import InferenceWidget from '@/components/model/InferenceWidget'
+import ServiceCTA from '@/components/shared/ServiceCTA'
 
 interface PageProps {
   params: Promise<{ slug: string }>
@@ -88,6 +89,10 @@ export default async function ModelPage({ params }: PageProps) {
     notFound()
   }
 
+  // Detect if this is a generic/customizable model
+  const labelsRaw = model.modelMetadata?.labels;
+  const isGeneric = labelsRaw === '["__custom__"]' || labelsRaw === '__custom__';
+
   const technicalColors: Record<string, string> = {
     Detection: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
     Segmentation: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
@@ -96,55 +101,79 @@ export default async function ModelPage({ params }: PageProps) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-2 text-[#5f6368] hover:text-[#202124] transition-colors mb-8 text-sm font-medium"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Volver al Marketplace
-      </Link>
+    <div className="max-w-5xl mx-auto px-6 py-12">
+      {/* Header Band - Full Width */}
+      <div className="space-y-6 mb-12">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-[#5f6368] hover:text-[#202124] transition-colors text-sm font-medium"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Volver al Marketplace
+        </Link>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Info */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Header */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${technicalColors[model.technical] || technicalColors.Detection}`}>
-                {model.technical}
+        {/* Badges Row */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${technicalColors[model.technical] || technicalColors.Detection}`}>
+            {model.technical}
+          </span>
+          {model.modelMetadata.onnxModelUrl || model.modelMetadata.tfjsModelUrl ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-500/10 text-green-600 rounded text-[10px] font-bold uppercase tracking-wider border border-green-500/20">
+              <Cpu className="w-2.5 h-2.5" />
+              Local
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-500/10 text-gray-600 rounded text-[10px] font-bold uppercase tracking-wider border border-gray-500/20">
+              <Cloud className="w-2.5 h-2.5" />
+              API
+            </span>
+          )}
+          {model.modelMetadata.isPremium && (
+            <span className="flex items-center gap-1 px-3 py-1 bg-yellow-400 text-yellow-900 rounded-full text-[10px] font-black uppercase tracking-widest border border-yellow-500 shadow-sm">
+              <Zap className="w-2.5 h-2.5 fill-current" />
+              Premium
+            </span>
+          )}
+          <span className="text-[#dadce0]">•</span>
+          <span className="text-[#5f6368] text-sm font-medium">v{model.version}</span>
+        </div>
+
+        {/* Title */}
+        <h1 className="text-3xl md:text-4xl font-bold text-[#202124] tracking-tight">
+          {model.title}
+        </h1>
+
+        {/* Creator Info & Category */}
+        <div className="flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-[#1a73e8] flex items-center justify-center">
+              <span className="text-white text-xs font-bold">
+                {model.creator.charAt(0).toUpperCase()}
               </span>
-              {model.modelMetadata.isPremium && (
-                <span className="flex items-center gap-1 px-3 py-1 bg-yellow-400 text-yellow-900 rounded-full text-[10px] font-black uppercase tracking-widest border border-yellow-500 shadow-sm">
-                  <Zap className="w-2.5 h-2.5 fill-current" />
-                  Premium
-                </span>
-              )}
-              <span className="text-[#dadce0]">•</span>
-              <span className="text-[#5f6368] text-sm font-medium">v{model.version}</span>
             </div>
-
-            <h1 className="text-3xl md:text-4xl font-bold text-[#202124] tracking-tight">
-              {model.title}
-            </h1>
-
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-[#1a73e8] flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">
-                    {model.creator.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <span className="font-medium text-[#202124]">{model.creator}</span>
-              </div>
-              <div className="flex items-center gap-1 text-[#5f6368]">
-                <Clock className="w-4 h-4" />
-                {model.category}
-              </div>
-            </div>
+            <span className="font-medium text-[#202124]">{model.creator}</span>
           </div>
+          <div className="flex items-center gap-1 text-[#5f6368]">
+            <Clock className="w-4 h-4" />
+            {model.category}
+          </div>
+        </div>
+      </div>
 
-          {/* Metrics */}
+      {/* InferenceWidget - Hero Section */}
+      <section id="probar" className="mb-12 max-w-3xl mx-auto">
+        <InferenceWidget
+          modelId={model.id}
+          modelMetadata={model.modelMetadata}
+          isGeneric={isGeneric}
+        />
+      </section>
+
+      {/* Content Grid - 2 Columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+        {/* Left Column - Main Content */}
+        <div className="lg:col-span-3 space-y-10">
+          {/* Key Metrics */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-[#e8f0fe] border border-[#1a73e8]/20 rounded-xl p-4">
               <p className="text-[10px] font-bold text-[#1a73e8] uppercase tracking-widest mb-1">mAP</p>
@@ -164,136 +193,95 @@ export default async function ModelPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Main Content Sections */}
-          <div className="space-y-10 pt-6">
-            {/* Description Section */}
-            <section id="description" className="space-y-4">
-              <h2 className="text-xl font-bold text-[#202124]">Descripción</h2>
-              <p className="text-[#5f6368] leading-relaxed">
-                {model.description || `Modelo avanzado de ${model.technical.toLowerCase()} optimizado para entornos de ${model.category.toLowerCase()}.`}
+          {/* Description Section */}
+          <section id="description" className="space-y-4">
+            <h2 className="text-xl font-bold text-[#202124]">Descripción</h2>
+            <p className="text-[#5f6368] leading-relaxed">
+              {model.description || `Modelo avanzado de ${model.technical.toLowerCase()} optimizado para entornos de ${model.category.toLowerCase()}.`}
+            </p>
+          </section>
+
+          {/* Classes Section */}
+          {model.modelMetadata.labels && (
+            <section id="classes" className="space-y-4">
+              <h2 className="text-xl font-bold text-[#202124]">¿Qué Clasifica?</h2>
+              <p className="text-[#5f6368] text-sm">
+                Este modelo puede identificar las siguientes {JSON.parse(model.modelMetadata.labels).length} categorías:
               </p>
-            </section>
-
-            {/* Classes Section */}
-            {model.modelMetadata.labels && (
-              <section id="classes" className="space-y-4">
-                <h2 className="text-xl font-bold text-[#202124]">¿Qué Clasifica?</h2>
-                <p className="text-[#5f6368] text-sm">
-                  Este modelo puede identificar las siguientes {JSON.parse(model.modelMetadata.labels).length} categorías:
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {JSON.parse(model.modelMetadata.labels).slice(0, 15).map((label: string, i: number) => (
-                    <span key={i} className="px-3 py-1 bg-[#f1f3f4] text-[#5f6368] rounded-full text-xs font-medium border border-[#dadce0]">
-                      {label}
-                    </span>
-                  ))}
-                  {JSON.parse(model.modelMetadata.labels).length > 15 && (
-                    <span className="px-3 py-1 bg-white text-[#1a73e8] rounded-full text-xs font-medium border border-[#1a73e8]/20">
-                      + {JSON.parse(model.modelMetadata.labels).length - 15} más
-                    </span>
-                  )}
-                </div>
-              </section>
-            )}
-
-            {/* Technical Specs */}
-            <section id="specs" className="space-y-4">
-              <h2 className="text-xl font-bold text-[#202124]">Especificaciones Técnicas</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-[#5f6368] uppercase tracking-widest">Formato</p>
-                  <p className="text-sm font-medium text-[#202124]">{model.modelMetadata.format?.toUpperCase() || 'ONNX'}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-[#5f6368] uppercase tracking-widest">Entrada</p>
-                  <p className="text-sm font-medium text-[#202124]">{model.modelMetadata.inputShape ? JSON.parse(model.modelMetadata.inputShape).width + 'x' + JSON.parse(model.modelMetadata.inputShape).height + 'px' : '224x224px'}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-[#5f6368] uppercase tracking-widest">Tamaño</p>
-                  <p className="text-sm font-medium text-[#202124]">{model.modelMetadata.modelSizeBytes ? (model.modelMetadata.modelSizeBytes / (1024 * 1024)).toFixed(1) + ' MB' : 'N/A'}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-[#5f6368] uppercase tracking-widest">Normalización</p>
-                  <p className="text-sm font-medium text-[#202124]">ImageNet</p>
-                </div>
+              <div className="flex flex-wrap gap-2">
+                {JSON.parse(model.modelMetadata.labels).slice(0, 15).map((label: string, i: number) => (
+                  <span key={i} className="px-3 py-1 bg-[#f1f3f4] text-[#5f6368] rounded-full text-xs font-medium border border-[#dadce0]">
+                    {label}
+                  </span>
+                ))}
+                {JSON.parse(model.modelMetadata.labels).length > 15 && (
+                  <span className="px-3 py-1 bg-white text-[#1a73e8] rounded-full text-xs font-medium border border-[#1a73e8]/20">
+                    + {JSON.parse(model.modelMetadata.labels).length - 15} más
+                  </span>
+                )}
               </div>
             </section>
+          )}
 
-            {/* Use Cases & Limitations */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <section className="space-y-4">
-                <h2 className="text-xl font-bold text-[#202124]">Casos de Uso</h2>
-                <ul className="space-y-2 text-[#5f6368] text-sm">
-                  <li className="flex gap-2">
-                    <span className="text-[#1a73e8]">•</span>
-                    Análisis preliminar en {model.category.toLowerCase()}
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="text-[#1a73e8]">•</span>
-                    Sistemas de apoyo a la decisión
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="text-[#1a73e8]">•</span>
-                    Procesamiento de datos a gran escala
-                  </li>
-                </ul>
-              </section>
-              <section className="space-y-4">
-                <h2 className="text-xl font-bold text-[#202124]">Limitaciones</h2>
-                <ul className="space-y-2 text-[#5f6368] text-sm">
-                  <li className="flex gap-2">
-                    <span className="text-red-500">•</span>
-                    No sustituye el juicio de un experto humano
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="text-red-500">•</span>
-                    Sensible a condiciones de iluminación
-                  </li>
-                </ul>
-              </section>
-            </div>
-
-            {/* Code Snippet */}
-            <section id="code" className="space-y-4">
-              <h2 className="text-xl font-bold text-[#202124]">Código de Integración</h2>
-              <div className="relative group">
-                <pre className="bg-[#202124] text-[#e8eaed] p-6 rounded-xl overflow-x-auto text-xs leading-relaxed font-mono">
-                  {model.modelMetadata.format === 'tfjs'
-                    ? `import * as tf from '@tensorflow/tfjs';
-import * as cocoSsd from '@tensorflow-models/coco-ssd';
-
-// Cargar el modelo
-const model = await cocoSsd.load();
-
-// Ejecutar inferencia
-const predictions = await model.detect(imageElement);
-console.log('Predicciones:', predictions);`
-                    : `import * as ort from 'onnxruntime-web';
-
-// Cargar el modelo
-const session = await ort.InferenceSession.create(
-  '${API_URL}/models/${model.slug}.onnx'
-);
-
-// Preparar imagen
-const tensor = new ort.Tensor('float32', imageData, [1, 3, 224, 224]);
-
-// Ejecutar inferencia
-const results = await session.run({ images: tensor });
-const scores = results.output.data;
-const topClass = Math.max(...scores);`}
-                </pre>
-              </div>
+          {/* Use Cases & Limitations */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <section className="space-y-4">
+              <h2 className="text-xl font-bold text-[#202124]">Casos de Uso</h2>
+              <ul className="space-y-2 text-[#5f6368] text-sm">
+                <li className="flex gap-2">
+                  <span className="text-[#1a73e8]">•</span>
+                  Análisis preliminar en {model.category.toLowerCase()}
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-[#1a73e8]">•</span>
+                  Sistemas de apoyo a la decisión
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-[#1a73e8]">•</span>
+                  Procesamiento de datos a gran escala
+                </li>
+              </ul>
+            </section>
+            <section className="space-y-4">
+              <h2 className="text-xl font-bold text-[#202124]">Limitaciones</h2>
+              <ul className="space-y-2 text-[#5f6368] text-sm">
+                <li className="flex gap-2">
+                  <span className="text-red-500">•</span>
+                  No sustituye el juicio de un experto humano
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-red-500">•</span>
+                  Sensible a condiciones de iluminación
+                </li>
+              </ul>
             </section>
           </div>
         </div>
 
-        {/* Right Column: Widget */}
-        <div className="space-y-6">
-          <InferenceWidget
-            modelId={model.id}
-            modelMetadata={model.modelMetadata}
-          />
+        {/* Right Column - Sidebar */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Technical Specs Card */}
+          <div className="bg-white border border-[#dadce0] rounded-xl p-6 space-y-4">
+            <h3 className="font-bold text-[#202124]">Especificaciones Técnicas</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-[#5f6368] uppercase tracking-widest">Formato</p>
+                <p className="text-sm font-medium text-[#202124]">{model.modelMetadata.format?.toUpperCase() || 'ONNX'}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-[#5f6368] uppercase tracking-widest">Entrada</p>
+                <p className="text-sm font-medium text-[#202124]">{model.modelMetadata.inputShape ? JSON.parse(model.modelMetadata.inputShape).width + 'x' + JSON.parse(model.modelMetadata.inputShape).height + 'px' : '224x224px'}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-[#5f6368] uppercase tracking-widest">Tamaño</p>
+                <p className="text-sm font-medium text-[#202124]">{model.modelMetadata.modelSizeBytes ? (model.modelMetadata.modelSizeBytes / (1024 * 1024)).toFixed(1) + ' MB' : 'N/A'}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-[#5f6368] uppercase tracking-widest">Normalización</p>
+                <p className="text-sm font-medium text-[#202124]">ImageNet</p>
+              </div>
+            </div>
+          </div>
 
           {/* API Access Card */}
           <div className="bg-white border border-[#dadce0] rounded-xl p-6 space-y-4">
@@ -311,6 +299,42 @@ const topClass = Math.max(...scores);`}
               {model.modelMetadata.isPremium ? "Actualizar a Pro" : "Generar API Key"}
             </Link>
           </div>
+
+          {/* ServiceCTA Card */}
+          <ServiceCTA variant="card" />
+
+          {/* Code Snippet */}
+          <section id="code" className="space-y-4">
+            <h2 className="text-xl font-bold text-[#202124]">Código de Integración</h2>
+            <div className="relative group">
+              <pre className="bg-[#202124] text-[#e8eaed] p-6 rounded-xl overflow-x-auto text-xs leading-relaxed font-mono">
+                {model.modelMetadata.format === 'tfjs'
+                  ? `import * as tf from '@tensorflow/tfjs';
+import * as cocoSsd from '@tensorflow-models/coco-ssd';
+
+// Cargar el modelo
+const model = await cocoSsd.load();
+
+// Ejecutar inferencia
+const predictions = await model.detect(imageElement);
+console.log('Predicciones:', predictions);`
+                  : `import * as ort from 'onnxruntime-web';
+
+// Cargar el modelo
+const session = await ort.InferenceSession.create(
+  '${API_URL}/models/${model.slug}.onnx'
+);
+
+// Preparar imagen
+const tensor = new ort.Tensor('float32', imageData, [1, 3, 224, 224]);
+
+// Ejecutar inferencia
+const results = await session.run({ images: tensor });
+const scores = results.output.data;
+const topClass = Math.max(...scores);`}
+              </pre>
+            </div>
+          </section>
         </div>
       </div>
     </div>

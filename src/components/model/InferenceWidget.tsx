@@ -3,6 +3,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, Camera, Play, X, AlertCircle, Loader2, Video, VideoOff, Image as ImageIcon, Download, Zap, Server, HardDrive } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import CameraSelector from './CameraSelector';
+import CustomLabelConfigurator from './CustomLabelConfigurator';
 
 // Tipos para el widget
 interface Prediction {
@@ -52,14 +54,17 @@ interface ModelMetadata {
 interface InferenceWidgetProps {
     modelId: string;
     modelMetadata?: ModelMetadata;
+    isGeneric?: boolean;
 }
 
 type InferenceMode = 'browser' | 'api';
 
-export default function InferenceWidget({ modelId, modelMetadata }: InferenceWidgetProps) {
+export default function InferenceWidget({ modelId, modelMetadata, isGeneric }: InferenceWidgetProps) {
     // Modos de entrada
     const [inputMode, setInputMode] = useState<'upload' | 'webcam'>('upload');
     const [inferenceMode, setInferenceMode] = useState<InferenceMode>('browser');
+    const [customLabels, setCustomLabels] = useState<string[]>([]);
+    const [customApiKey, setCustomApiKey] = useState<string>('');
 
     // Estados de UI
     const [dragActive, setDragActive] = useState(false);
@@ -71,6 +76,16 @@ export default function InferenceWidget({ modelId, modelMetadata }: InferenceWid
     // Estados de webcam
     const [webcamActive, setWebcamActive] = useState(false);
     const [webcamError, setWebcamError] = useState<string | null>(null);
+    const [facingMode, setFacingMode] = useState<'user' | 'environment'>(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const saved = localStorage.getItem('visionhub-camera-pref');
+                if (saved) return JSON.parse(saved).facingMode || 'environment';
+            } catch {}
+        }
+        return 'environment';
+    });
+    const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
 
     // Estados de modelo local
     const [modelLoaded, setModelLoaded] = useState(false);
@@ -478,16 +493,26 @@ export default function InferenceWidget({ modelId, modelMetadata }: InferenceWid
         }
     };
 
-    const startWebcam = async () => {
+    const startWebcam = async (deviceId?: string) => {
         setWebcamError(null);
         try {
             console.log('🎥 Solicitando acceso a cámara...');
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
-            });
+            const constraints: MediaStreamConstraints = {
+                video: deviceId
+                    ? { deviceId: { exact: deviceId }, width: { ideal: 640 }, height: { ideal: 480 } }
+                    : { facingMode, width: { ideal: 640 }, height: { ideal: 480 } }
+            };
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
             console.log('✅ Stream obtenido:', stream.getVideoTracks()[0]?.label);
 
             streamRef.current = stream;
+
+            // Enumerate cameras after permission is granted (labels now available)
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const cameras = devices.filter(d => d.kind === 'videoinput');
+                setAvailableCameras(cameras);
+            } catch {}
 
             if (videoRef.current) {
                 const video = videoRef.current;
@@ -502,8 +527,6 @@ export default function InferenceWidget({ modelId, modelMetadata }: InferenceWid
                     console.log('✅ Video reproduciendo');
                 } catch (playErr) {
                     console.warn('Auto-play bloqueado, esperando interacción:', playErr);
-                    // En algunos navegadores, autoplay está bloqueado
-                    // El usuario puede hacer clic para reproducir
                 }
             } else {
                 console.error('videoRef no está disponible');
@@ -525,6 +548,22 @@ export default function InferenceWidget({ modelId, modelMetadata }: InferenceWid
                 setWebcamError('No se pudo acceder a la cámara. Por favor verifica los permisos.');
             }
         }
+    };
+
+    const switchCamera = (newFacingMode: 'user' | 'environment', deviceId?: string) => {
+        const wasRealtime = isRealtime;
+        if (isRealtime) stopRealtimeLoop();
+        stopWebcam();
+        setFacingMode(newFacingMode);
+        try {
+            localStorage.setItem('visionhub-camera-pref', JSON.stringify({ facingMode: newFacingMode }));
+        } catch {}
+        // Small delay to let stream fully stop before restarting
+        setTimeout(() => {
+            startWebcam(deviceId).then(() => {
+                if (wasRealtime) setIsRealtime(true);
+            });
+        }, 100);
     };
 
     const stopWebcam = () => {
@@ -850,6 +889,14 @@ export default function InferenceWidget({ modelId, modelMetadata }: InferenceWid
                 </div>
             )}
 
+            {/* Generic model: Custom Label Configurator */}
+            {isGeneric && (
+                <CustomLabelConfigurator
+                    onLabelsChange={setCustomLabels}
+                    onApiKeyChange={setCustomApiKey}
+                />
+            )}
+
             {/* Selector de entrada (Upload/Webcam) - Webcam solo para Detection */}
             {supportsWebcam ? (
                 <div className="flex gap-1 bg-[#e8f0fe] p-1 rounded-lg mb-4">
@@ -1051,6 +1098,14 @@ export default function InferenceWidget({ modelId, modelMetadata }: InferenceWid
                                         )}
                                     </div>
                                 )}
+                                {/* Camera selector overlay */}
+                                <div className="absolute top-2 right-2 z-10">
+                                    <CameraSelector
+                                        cameras={availableCameras}
+                                        currentFacingMode={facingMode}
+                                        onSwitch={switchCamera}
+                                    />
+                                </div>
                             </>
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center gap-4 py-16">
@@ -1072,7 +1127,7 @@ export default function InferenceWidget({ modelId, modelMetadata }: InferenceWid
                     <div className="flex gap-3">
                         {!webcamActive ? (
                             <button
-                                onClick={startWebcam}
+                                onClick={() => startWebcam()}
                                 className="flex-1 py-3 bg-[#1a73e8] hover:bg-[#1557b0] text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors"
                             >
                                 <Video className="w-4 h-4" />

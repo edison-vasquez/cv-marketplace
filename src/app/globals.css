@@ -78,4 +78,39 @@
     color: var(--color-primary);
     @apply px-3 py-1.5 rounded-full text-sm font-medium;
   }
+
+  .hero-gradient {
+    @apply bg-gradient-to-br from-[#f8f9fa] to-[#e8f0fe];
+  }
+
+  .section-heading {
+    @apply text-xl font-semibold text-[#202124];
+  }
+
+  .cta-banner {
+    @apply bg-gradient-to-r from-[#1a73e8] to-[#4285f4] rounded-2xl p-8 md:p-12;
+  }
+
+  .industry-card {
+    @apply p-4 bg-white border border-[#dadce0] rounded-xl hover:border-[#1a73e8] hover:shadow-md transition-all;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes bbox-appear {
+  0% { opacity: 0; transform: scale(0.8); }
+  20% { opacity: 1; transform: scale(1); }
+  80% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.95); }
+}
+
+.animate-bbox {
+  animation: bbox-appear 3s ease-in-out infinite;
 }

@@ -26,18 +26,22 @@ export default function RootLayout({
           </main>
           <footer className="border-t border-[#dadce0] py-8 px-6 bg-[#f8f9fa]">
             <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-[#1a73e8] rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">V</span>
+              <div className="flex flex-col items-center md:items-start gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-[#1a73e8] rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">V</span>
+                  </div>
+                  <span className="font-semibold text-[#202124]">VisionHub</span>
                 </div>
-                <span className="font-semibold text-[#202124]">VisionHub</span>
+                <p className="text-xs text-[#5f6368]">contacto: edison@jhedai.com</p>
               </div>
               <div className="flex gap-8 text-sm text-[#5f6368]">
+                <a href="/services" className="hover:text-[#1a73e8] transition-colors">Soluciones</a>
                 <a href="#" className="hover:text-[#1a73e8] transition-colors">Twitter</a>
                 <a href="#" className="hover:text-[#1a73e8] transition-colors">GitHub</a>
                 <a href="#" className="hover:text-[#1a73e8] transition-colors">Discord</a>
               </div>
-              <p className="text-sm text-[#80868b]">© 2026 VisionHub. Built with Roboflow & Pipeless AI.</p>
+              <p className="text-sm text-[#80868b]">© 2026 VisionHub - Soluciones de Visión Artificial para la Industria</p>
             </div>
           </footer>
         </SessionProvider>

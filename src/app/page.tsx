@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react"
 import ModelCard from "@/components/marketplace/ModelCard"
-import { Search, Loader2 } from "lucide-react"
+import IndustryShowcase from "@/components/marketplace/IndustryShowcase"
+import ServiceCTA from "@/components/shared/ServiceCTA"
+import { Search, Loader2, ArrowRight, Eye, Cpu, Globe } from "lucide-react"
 
 interface Model {
   id: string
@@ -83,19 +85,157 @@ export default function Home() {
     return () => clearTimeout(timer)
   }, [fetchModels])
 
+  const scrollToModels = () => {
+    const modelsSection = document.getElementById('modelos')
+    if (modelsSection) {
+      modelsSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-6">
       {/* Hero Section */}
-      <section className="text-center py-16">
-        <h1 className="text-5xl md:text-6xl font-normal text-[#202124] mb-6">
-          <span className="text-[#1a73e8]">Vision</span>Hub
-        </h1>
+      <section className="py-16 bg-gradient-to-br from-[#f8f9fa] to-[#e8f0fe] -mx-6 px-6 rounded-2xl mb-12">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          {/* Left Column - Content */}
+          <div>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#202124] mb-6 leading-tight">
+              Visión Artificial para tu{" "}
+              <span className="text-[#1a73e8]">Industria</span>
+            </h1>
 
-        <p className="text-lg text-[#5f6368] max-w-xl mx-auto mb-10">
-          Prueba modelos de Visión por Computadora directamente en tu navegador. Sin instalación, sin API keys, 100% local y gratuito.
-        </p>
+            <p className="text-lg text-[#5f6368] mb-8 leading-relaxed max-w-lg">
+              Explora nuestro catálogo de modelos de Computer Vision, pruébalos en vivo desde tu navegador
+              y conéctanos para integrarlos en tus sistemas de forma local o remota. Nosotros entrenamos e implementamos por ti.
+            </p>
 
-        {/* Barra de Búsqueda */}
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-10">
+              <button
+                onClick={scrollToModels}
+                className="px-6 py-3.5 bg-[#1a73e8] hover:bg-[#1557b0] text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors shadow-md hover:shadow-lg"
+              >
+                <Eye className="w-5 h-5" />
+                Explorar Modelos
+              </button>
+              <a
+                href="mailto:edison@jhedai.com?subject=Solicitud%20Demo%20VisionHub"
+                className="px-6 py-3.5 bg-white border-2 border-[#1a73e8] text-[#1a73e8] hover:bg-[#f8f9fa] rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
+              >
+                <ArrowRight className="w-5 h-5" />
+                Solicitar Demo
+              </a>
+            </div>
+
+            {/* Stats Bar */}
+            <div className="flex flex-wrap items-center gap-6 text-sm text-[#5f6368]">
+              <div className="flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-[#1a73e8]" />
+                <span className="font-semibold">66+ Modelos</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-[#34a853]" />
+                <span className="font-semibold">15+ Industrias</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4 text-[#ea4335]" />
+                <span className="font-semibold">Inferencia en Navegador</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Animated Bounding Box Simulation */}
+          <div className="relative h-[400px] lg:h-[500px] rounded-xl overflow-hidden shadow-2xl">
+            <style jsx>{`
+              @keyframes bbox1 {
+                0%, 100% { opacity: 0; transform: translate(20%, 30%) scale(0.8); }
+                10%, 90% { opacity: 1; transform: translate(20%, 30%) scale(1); }
+              }
+              @keyframes bbox2 {
+                0%, 100% { opacity: 0; transform: translate(60%, 50%) scale(0.8); }
+                20%, 80% { opacity: 1; transform: translate(60%, 50%) scale(1); }
+              }
+              @keyframes bbox3 {
+                0%, 100% { opacity: 0; transform: translate(10%, 65%) scale(0.8); }
+                30%, 70% { opacity: 1; transform: translate(10%, 65%) scale(1); }
+              }
+              @keyframes bbox4 {
+                0%, 100% { opacity: 0; transform: translate(70%, 20%) scale(0.8); }
+                40%, 60% { opacity: 1; transform: translate(70%, 20%) scale(1); }
+              }
+            `}</style>
+
+            {/* Background Image */}
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              style={{
+                backgroundImage: 'url(https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&q=80)',
+              }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-[#1a73e8]/20 to-[#ea4335]/20" />
+            </div>
+
+            {/* Animated Bounding Boxes */}
+            <div
+              className="absolute w-32 h-32 border-4 border-[#34a853] rounded-lg"
+              style={{
+                animation: 'bbox1 6s ease-in-out infinite',
+                boxShadow: '0 0 20px rgba(52, 168, 83, 0.6)'
+              }}
+            >
+              <div className="absolute -top-6 left-0 bg-[#34a853] text-white text-xs font-bold px-2 py-1 rounded">
+                Defect
+              </div>
+            </div>
+
+            <div
+              className="absolute w-24 h-24 border-4 border-[#ea4335] rounded-lg"
+              style={{
+                animation: 'bbox2 6s ease-in-out infinite',
+                boxShadow: '0 0 20px rgba(234, 67, 53, 0.6)'
+              }}
+            >
+              <div className="absolute -top-6 left-0 bg-[#ea4335] text-white text-xs font-bold px-2 py-1 rounded">
+                Hazard
+              </div>
+            </div>
+
+            <div
+              className="absolute w-28 h-20 border-4 border-[#f9ab00] rounded-lg"
+              style={{
+                animation: 'bbox3 6s ease-in-out infinite',
+                boxShadow: '0 0 20px rgba(249, 171, 0, 0.6)'
+              }}
+            >
+              <div className="absolute -top-6 left-0 bg-[#f9ab00] text-white text-xs font-bold px-2 py-1 rounded">
+                Object
+              </div>
+            </div>
+
+            <div
+              className="absolute w-20 h-28 border-4 border-[#1a73e8] rounded-lg"
+              style={{
+                animation: 'bbox4 6s ease-in-out infinite',
+                boxShadow: '0 0 20px rgba(26, 115, 232, 0.6)'
+              }}
+            >
+              <div className="absolute -top-6 left-0 bg-[#1a73e8] text-white text-xs font-bold px-2 py-1 rounded">
+                Part
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Industry Showcase */}
+      <IndustryShowcase
+        categories={categories}
+        onSelectCategory={(category) => setCategoryFilter(category)}
+      />
+
+      {/* Model Grid Section */}
+      <section id="modelos" className="py-8 border-t border-[#dadce0]">
+        {/* Search Bar */}
         <div className="max-w-2xl mx-auto relative group mb-6">
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-[#9aa0a6] w-5 h-5" />
           <input
@@ -108,7 +248,7 @@ export default function Home() {
         </div>
 
         {/* Filtros por Tipo Técnico */}
-        <div className="flex flex-wrap justify-center gap-2 mb-4">
+        <div className="flex flex-wrap justify-center gap-2 mb-6">
           <button
             onClick={() => setTechnicalFilter("all")}
             className={technicalFilter === "all" ? "chip-active" : "chip"}
@@ -125,10 +265,8 @@ export default function Home() {
             </button>
           ))}
         </div>
-      </section>
 
-      {/* Sección de Categorías */}
-      <section className="py-8 border-t border-[#dadce0]">
+        {/* Category Filter Chips */}
         <div className="flex flex-wrap items-center gap-3 mb-8">
           <span className="text-sm font-medium text-[#5f6368]">Industria:</span>
           <button
@@ -171,7 +309,7 @@ export default function Home() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {models.map(model => (
                 <ModelCard
                   key={model.id}
@@ -216,6 +354,9 @@ export default function Home() {
           </>
         )}
       </section>
+
+      {/* Service CTA */}
+      <ServiceCTA />
     </div>
   )
 }
