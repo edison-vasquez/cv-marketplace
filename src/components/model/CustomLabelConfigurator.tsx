@@ -1,12 +1,10 @@
 "use client";
 
 import { useState } from 'react';
-import { Tag, Plus, X, ChevronDown, Key } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Tag, Plus, X } from 'lucide-react';
 
 interface CustomLabelConfiguratorProps {
     onLabelsChange: (labels: string[]) => void;
-    onApiKeyChange?: (key: string) => void;
 }
 
 const suggestedLabels = [
@@ -14,11 +12,9 @@ const suggestedLabels = [
     'animal', 'herramienta', 'señalización'
 ];
 
-export default function CustomLabelConfigurator({ onLabelsChange, onApiKeyChange }: CustomLabelConfiguratorProps) {
+export default function CustomLabelConfigurator({ onLabelsChange }: CustomLabelConfiguratorProps) {
     const [labels, setLabels] = useState<string[]>([]);
     const [input, setInput] = useState('');
-    const [showApiKey, setShowApiKey] = useState(false);
-    const [apiKey, setApiKey] = useState('');
 
     const addLabel = (label: string) => {
         const trimmed = label.trim().toLowerCase();
@@ -106,33 +102,6 @@ export default function CustomLabelConfigurator({ onLabelsChange, onApiKeyChange
                 </div>
             </div>
 
-            {/* Collapsible API Key section */}
-            <button
-                onClick={() => setShowApiKey(!showApiKey)}
-                className="flex items-center gap-1.5 text-xs text-[#5f6368] hover:text-[#1a73e8] transition-colors"
-            >
-                <Key className="w-3 h-3" />
-                Conectar tu API Key (modo real)
-                <ChevronDown className={cn("w-3 h-3 transition-transform", showApiKey && "rotate-180")} />
-            </button>
-
-            {showApiKey && (
-                <div className="mt-2 p-3 bg-[#f8f9fa] rounded-lg">
-                    <p className="text-xs text-[#5f6368] mb-2">
-                        Ingresa tu API key de Roboflow para usar detección real con YOLO-World.
-                    </p>
-                    <input
-                        type="password"
-                        value={apiKey}
-                        onChange={(e) => {
-                            setApiKey(e.target.value);
-                            onApiKeyChange?.(e.target.value);
-                        }}
-                        placeholder="rf_xxxxxxxxxxxxxxxx"
-                        className="w-full px-3 py-2 border border-[#dadce0] rounded-lg text-xs text-[#202124] outline-none focus:border-[#1a73e8] transition-colors"
-                    />
-                </div>
-            )}
         </div>
     );
 }

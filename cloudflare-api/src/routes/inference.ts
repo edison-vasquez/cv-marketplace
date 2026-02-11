@@ -1,10 +1,85 @@
 import { Hono } from 'hono';
 import type { Env } from '../index';
-import { validateApiKey } from '../middleware/auth';
+import { validateApiKey, validateJWT, requireAdmin } from '../middleware/auth';
+import { RoboflowKeyPool } from '../lib/key-pool';
 
 export const inferenceRoutes = new Hono<{ Bindings: Env }>();
 
-// POST /api/inference - Inferencia premium (requiere API key)
+// ─── POST /demo ─── Public demo inference using internal key pool ───
+inferenceRoutes.post('/demo', async (c) => {
+  const body = await c.req.json<{ image: string; modelId: string }>();
+
+  if (!body.image || !body.modelId) {
+    return c.json({ error: 'image and modelId are required' }, 400);
+  }
+
+  // Per-IP rate limit (50 demos/day)
+  const ip = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown';
+  const ipKey = `demo:ip:${ip}`;
+  const ipCount = parseInt(await c.env.SESSIONS.get(ipKey) || '0');
+
+  if (ipCount >= 50) {
+    return c.json({
+      error: 'Límite de demos diarios alcanzado. Prueba la inferencia en navegador (gratis e ilimitada).',
+      dailyLimit: 50,
+      used: ipCount,
+    }, 429);
+  }
+
+  // Look up model in D1
+  const model = await c.env.DB.prepare(
+    'SELECT id, slug, title, technical, roboflow_id, roboflow_version, roboflow_model_type FROM models WHERE id = ? OR slug = ?'
+  ).bind(body.modelId, body.modelId).first<{
+    id: string;
+    slug: string;
+    title: string;
+    technical: string;
+    roboflow_id: string | null;
+    roboflow_version: number | null;
+    roboflow_model_type: string | null;
+  }>();
+
+  if (!model) {
+    return c.json({ error: 'Model not found' }, 404);
+  }
+
+  if (!model.roboflow_id) {
+    return c.json({
+      error: 'Este modelo solo soporta inferencia en navegador. Selecciona "En Navegador" en el modo de ejecución.',
+      browserOnly: true,
+    }, 400);
+  }
+
+  // Execute inference via key pool
+  const pool = new RoboflowKeyPool({ db: c.env.DB, kv: c.env.SESSIONS });
+
+  try {
+    const result = await pool.executeWithRetry(
+      model.roboflow_id,
+      model.roboflow_version || 1,
+      model.roboflow_model_type,
+      body.image
+    );
+
+    // Increment IP counter
+    await c.env.SESSIONS.put(ipKey, String(ipCount + 1), { expirationTtl: 86400 });
+
+    return c.json({
+      predictions: result.predictions,
+      time: result.time,
+      image: result.image,
+      model: { id: model.id, title: model.title, technical: model.technical },
+    });
+  } catch (err: any) {
+    console.error('Demo inference error:', err.message);
+    return c.json({
+      error: 'Servicio de inferencia temporalmente no disponible. Usa la inferencia en navegador.',
+      details: err.message,
+    }, 503);
+  }
+});
+
+// ─── POST / ─── Premium inference (requires user's VisionHub API key) ───
 inferenceRoutes.post('/', validateApiKey, async (c) => {
   const apiKey = c.get('apiKey') as { id: string; tier: string; userId: string };
   const body = await c.req.json<{ image: string; modelId: string }>();
@@ -13,55 +88,150 @@ inferenceRoutes.post('/', validateApiKey, async (c) => {
     return c.json({ error: 'image and modelId are required' }, 400);
   }
 
-  // Verificar que el modelo existe
   const model = await c.env.DB.prepare(
-    'SELECT * FROM models WHERE id = ? OR slug = ?'
-  ).bind(body.modelId, body.modelId).first();
+    'SELECT id, slug, title, technical, roboflow_id, roboflow_version, roboflow_model_type FROM models WHERE id = ? OR slug = ?'
+  ).bind(body.modelId, body.modelId).first<{
+    id: string;
+    slug: string;
+    title: string;
+    technical: string;
+    roboflow_id: string | null;
+    roboflow_version: number | null;
+    roboflow_model_type: string | null;
+  }>();
 
   if (!model) {
     return c.json({ error: 'Model not found' }, 404);
   }
 
-  // Por ahora, retornar mock predictions
-  // En producción, esto se conectaría a un servicio de inferencia GPU
-  const predictions = generateMockPredictions(model.technical as string);
+  if (!model.roboflow_id) {
+    return c.json({ error: 'This model does not support API inference' }, 400);
+  }
 
-  // Incrementar contador de uso
-  await c.env.DB.prepare(
-    'UPDATE api_keys SET request_count = request_count + 1, last_used_at = CURRENT_TIMESTAMP WHERE id = ?'
-  ).bind(apiKey.id).run();
+  // Use key pool for premium users too
+  const pool = new RoboflowKeyPool({ db: c.env.DB, kv: c.env.SESSIONS });
 
-  return c.json({
-    predictions,
-    model: {
-      id: model.id,
-      title: model.title,
-      technical: model.technical,
-    },
-    inferenceTimeMs: Math.random() * 50 + 20, // Simular tiempo
-    apiKeyTier: apiKey.tier,
-  });
+  try {
+    const result = await pool.executeWithRetry(
+      model.roboflow_id,
+      model.roboflow_version || 1,
+      model.roboflow_model_type,
+      body.image
+    );
+
+    // Increment user's API key usage
+    await c.env.DB.prepare(
+      'UPDATE api_keys SET request_count = request_count + 1, last_used_at = CURRENT_TIMESTAMP WHERE id = ?'
+    ).bind(apiKey.id).run();
+
+    return c.json({
+      predictions: result.predictions,
+      time: result.time,
+      image: result.image,
+      model: { id: model.id, title: model.title, technical: model.technical },
+      apiKeyTier: apiKey.tier,
+    });
+  } catch (err: any) {
+    return c.json({ error: 'Inference failed', details: err.message }, 503);
+  }
 });
 
-// Generar predicciones mock basadas en el tipo de modelo
-function generateMockPredictions(technical: string) {
-  const classes: Record<string, string[]> = {
-    Detection: ['helmet', 'person', 'vehicle', 'object'],
-    Segmentation: ['background', 'foreground', 'region_1', 'region_2'],
-    Classification: ['class_a', 'class_b', 'class_c'],
-  };
+// ─── Admin: Key Pool Management ───
 
-  const modelClasses = classes[technical] || classes.Detection;
-  const numPredictions = Math.floor(Math.random() * 3) + 1;
+// GET /pool/keys - List all pool keys
+inferenceRoutes.get('/pool/keys', validateJWT, requireAdmin, async (c) => {
+  const pool = new RoboflowKeyPool({ db: c.env.DB, kv: c.env.SESSIONS });
+  const stats = await pool.getStats();
+  return c.json(stats);
+});
 
-  return Array.from({ length: numPredictions }, (_, i) => ({
-    class: modelClasses[i % modelClasses.length],
-    confidence: Math.random() * 0.4 + 0.6, // 0.6 - 1.0
-    bbox: technical === 'Detection' ? {
-      x: Math.random() * 400 + 100,
-      y: Math.random() * 300 + 50,
-      width: Math.random() * 150 + 50,
-      height: Math.random() * 150 + 50,
-    } : undefined,
-  }));
-}
+// POST /pool/keys - Add a Roboflow key to the pool
+inferenceRoutes.post('/pool/keys', validateJWT, requireAdmin, async (c) => {
+  const body = await c.req.json<{
+    apiKey: string;
+    label: string;
+    roboflowAccount?: string;
+    dailyLimit?: number;
+    monthlyLimit?: number;
+    priority?: number;
+  }>();
+
+  if (!body.apiKey || !body.label) {
+    return c.json({ error: 'apiKey and label are required' }, 400);
+  }
+
+  const id = crypto.randomUUID();
+
+  await c.env.DB.prepare(`
+    INSERT INTO roboflow_keys (id, api_key, label, roboflow_account, daily_limit, monthly_limit, priority)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    id,
+    body.apiKey,
+    body.label,
+    body.roboflowAccount || null,
+    body.dailyLimit || 100,
+    body.monthlyLimit || 1000,
+    body.priority || 0
+  ).run();
+
+  return c.json({ id, label: body.label, message: 'Key added to pool' }, 201);
+});
+
+// DELETE /pool/keys/:id - Remove a key from the pool
+inferenceRoutes.delete('/pool/keys/:id', validateJWT, requireAdmin, async (c) => {
+  const id = c.req.param('id');
+  await c.env.DB.prepare('DELETE FROM roboflow_keys WHERE id = ?').bind(id).run();
+  return c.json({ message: 'Key removed' });
+});
+
+// PATCH /pool/keys/:id - Toggle active/inactive, update limits
+inferenceRoutes.patch('/pool/keys/:id', validateJWT, requireAdmin, async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json<{
+    isActive?: boolean;
+    dailyLimit?: number;
+    monthlyLimit?: number;
+    priority?: number;
+  }>();
+
+  const updates: string[] = [];
+  const values: any[] = [];
+
+  if (body.isActive !== undefined) {
+    updates.push('is_active = ?');
+    values.push(body.isActive ? 1 : 0);
+  }
+  if (body.dailyLimit !== undefined) {
+    updates.push('daily_limit = ?');
+    values.push(body.dailyLimit);
+  }
+  if (body.monthlyLimit !== undefined) {
+    updates.push('monthly_limit = ?');
+    values.push(body.monthlyLimit);
+  }
+  if (body.priority !== undefined) {
+    updates.push('priority = ?');
+    values.push(body.priority);
+  }
+
+  if (updates.length === 0) {
+    return c.json({ error: 'No fields to update' }, 400);
+  }
+
+  updates.push('updated_at = CURRENT_TIMESTAMP');
+  values.push(id);
+
+  await c.env.DB.prepare(
+    `UPDATE roboflow_keys SET ${updates.join(', ')} WHERE id = ?`
+  ).bind(...values).run();
+
+  return c.json({ message: 'Key updated' });
+});
+
+// GET /pool/stats - Pool usage statistics
+inferenceRoutes.get('/pool/stats', validateJWT, requireAdmin, async (c) => {
+  const pool = new RoboflowKeyPool({ db: c.env.DB, kv: c.env.SESSIONS });
+  const stats = await pool.getStats();
+  return c.json(stats);
+});

@@ -64,7 +64,6 @@ export default function InferenceWidget({ modelId, modelMetadata, isGeneric }: I
     const [inputMode, setInputMode] = useState<'upload' | 'webcam'>('upload');
     const [inferenceMode, setInferenceMode] = useState<InferenceMode>('browser');
     const [customLabels, setCustomLabels] = useState<string[]>([]);
-    const [customApiKey, setCustomApiKey] = useState<string>('');
 
     // Estados de UI
     const [dragActive, setDragActive] = useState(false);
@@ -694,51 +693,6 @@ export default function InferenceWidget({ modelId, modelMetadata, isGeneric }: I
         return data;
     };
 
-    // Inferencia via Roboflow API (Fallback)
-    const runRoboflowInference = async (imageUrl: string) => {
-        if (!modelMetadata?.roboflowId) throw new Error('Este modelo no tiene configuración de Roboflow');
-
-        let base64data: string;
-        if (imageUrl.startsWith('data:')) {
-            base64data = imageUrl.split(',')[1];
-        } else {
-            const response = await fetch(imageUrl);
-            const blob = await response.blob();
-            base64data = await new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result?.toString().split(',')[1] || '');
-                reader.readAsDataURL(blob);
-            });
-        }
-
-        const apiKey = process.env.NEXT_PUBLIC_ROBOFLOW_API_KEY || 'rf_placeholder';
-        const url = `https://detect.roboflow.com/${modelMetadata.roboflowId}/${modelMetadata.roboflowVersion || 1}?api_key=${apiKey}`;
-
-        const res = await fetch(url, {
-            method: 'POST',
-            body: base64data,
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Roboflow API error');
-
-        return {
-            predictions: data.predictions?.map((p: any) => ({
-                class: p.class,
-                confidence: p.confidence,
-                bbox: {
-                    x: p.x - p.width / 2,
-                    y: p.y - p.height / 2,
-                    width: p.width,
-                    height: p.height
-                }
-            })) || [],
-            time: data.time || 0,
-            image: data.image
-        };
-    };
-
     const runInference = async (imageData?: string) => {
         const imageToProcess = imageData || preview;
         if (!imageToProcess) return;
@@ -753,11 +707,8 @@ export default function InferenceWidget({ modelId, modelMetadata, isGeneric }: I
             if (inferenceMode === 'browser' && engineReady) {
                 // Inferencia local en navegador
                 inferenceResult = await runLocalInference(imageToProcess);
-            } else if (modelMetadata?.roboflowId) {
-                // Inferencia via Roboflow API
-                inferenceResult = await runRoboflowInference(imageToProcess);
             } else {
-                // Inferencia via nuestra API propia
+                // Inferencia via API (proxy a Cloudflare Worker con pool de keys)
                 inferenceResult = await runApiInference(imageToProcess);
             }
 
@@ -893,7 +844,6 @@ export default function InferenceWidget({ modelId, modelMetadata, isGeneric }: I
             {isGeneric && (
                 <CustomLabelConfigurator
                     onLabelsChange={setCustomLabels}
-                    onApiKeyChange={setCustomApiKey}
                 />
             )}
 

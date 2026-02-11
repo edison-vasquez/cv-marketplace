@@ -5,6 +5,7 @@ import { modelsRoutes } from './routes/models';
 import { inferenceRoutes } from './routes/inference';
 import { apiKeysRoutes } from './routes/api-keys';
 import { authRoutes } from './routes/auth';
+import { RoboflowKeyPool } from './lib/key-pool';
 
 // Tipos para Cloudflare bindings
 export interface Env {
@@ -87,4 +88,21 @@ app.onError((err, c) => {
   }, 500);
 });
 
-export default app;
+export default {
+  fetch: app.fetch,
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+    const pool = new RoboflowKeyPool({ db: env.DB, kv: env.SESSIONS });
+
+    // Daily reset at midnight UTC
+    if (event.cron === '0 0 * * *') {
+      await pool.resetDailyCounters();
+      console.log('Daily key pool counters reset');
+    }
+
+    // Monthly reset on the 1st at midnight UTC
+    if (event.cron === '0 0 1 * *') {
+      await pool.resetMonthlyCounters();
+      console.log('Monthly key pool counters reset');
+    }
+  },
+};

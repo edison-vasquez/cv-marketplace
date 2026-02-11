@@ -68,8 +68,8 @@ GITHUB_SECRET="tu-github-client-secret"
 GOOGLE_CLIENT_ID="tu-google-client-id"
 GOOGLE_CLIENT_SECRET="tu-google-client-secret"
 
-# Roboflow API (para inferencia real)
-ROBOFLOW_API_KEY="tu-roboflow-api-key"
+# Roboflow API keys se gestionan internamente via Cloudflare Worker
+# No se necesita API key de Roboflow aquí
 ```
 
 #### Generar NEXTAUTH_SECRET
@@ -284,9 +284,9 @@ npm run db:seed
 
 ### Error de Inferencia
 
-- Verifica tu `ROBOFLOW_API_KEY`
-- Confirma que el modelo existe en Roboflow
-- Revisa los logs de la API en `/api/inference`
+- Las API keys de Roboflow se gestionan internamente en el pool del Cloudflare Worker
+- Verifica que el modelo tenga un `roboflow_id` configurado
+- Revisa los logs del Worker con `wrangler tail`
 
 ## Contribuir
 

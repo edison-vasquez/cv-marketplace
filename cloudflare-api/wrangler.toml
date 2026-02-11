@@ -23,6 +23,10 @@ bucket_name = "visionhub-models"
 binding = "SESSIONS"
 id = "823fc8ed4b1b423082f9cfa9f6b2d4bf"
 
+# Cron triggers for key pool counter resets
+[triggers]
+crons = ["0 0 * * *", "0 0 1 * *"]
+
 [env.preview]
 name = "visionhub-api-preview"
 
