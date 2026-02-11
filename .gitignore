@@ -61,3 +61,4 @@ cloudflare-api/node_modules/
 
 # Windows artifacts
 nul
+.github/
